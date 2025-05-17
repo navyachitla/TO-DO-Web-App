@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Priority To-Do App with Sidebar Menu</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0; padding: 0;
+    background: url('https://c8.alamy.com/comp/M42M0P/to-do-list-seamless-pattern-background-business-flat-vector-illustration-M42M0P.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: #222;
+    overflow-x: hidden;
+    transition: margin-left 0.3s ease;
+  }
+  .date-display {
+    margin: 20px auto;
+    font-size: 50px;
+    font-weight: bold;
+    color: #080000;
+    text-shadow: 1px 1px 4px #f7f1f1;
+    width: 700px;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0; left: -240px;
+    width: 240px; height: 100%;
+    background: linear-gradient(180deg, rgba(10,10,25,0.95), rgba(30,30,50,0.95));
+    box-shadow: 2px 0 12px rgba(0,0,0,0.6);
+    padding-top: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: left 0.3s ease;
+    z-index: 1000;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .sidebar.open { left: 0; }
+  .sidebar button {
+    background: rgba(50, 70, 110, 0.85);
+    border: none;
+    color: #dbe6f6;
+    padding: 12px 20px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 0 15px;
+    text-align: left;
+    transition: background 0.3s ease;
+    box-shadow: 0 2px 6px rgba(255,255,255,0.1);
+  }
+  .sidebar button:hover {
+    background: rgba(80, 110, 170, 0.95);
+    color: #fff;
+  }
+  #menuToggleBtn {
+    position: fixed;
+    top: 15px; left: 15px;
+    background-color: #3498db;
+    color: rgb(245, 243, 243);
+    border: none;
+    padding: 12px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 1100;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: background 0.3s ease;
+  }
+  #menuToggleBtn:hover { background-color: #2c80c5; }
+  body.sidebar-open { margin-left: 240px; }
+
+  .container {
+    width: 700px;
+    background: #f76565;  /* Dark translucent */
+    backdrop-filter: blur(6px);          /* Frosted glass effect */
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+    margin: 30px auto;
+    color: #f0f0f5;
+    transition: margin-left 0.3s ease;
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .new-task input,
+  .new-task textarea,
+  .new-task select,
+  .new-task button {
+    display: block;
+    width: 100%;
+    max-width: 650px;
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  .new-task textarea {
+    resize: vertical;
+    height: 60px;
+  }
+  .new-task button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    transition: background 0.3s ease;
+  }
+  .new-task button:hover { background-color: #2c80c5; }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 30px;
+  }
+  li {
+    padding: 15px;
+    margin-top: 12px;
+    background: #110101;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 6px solid #007BFF;
+    border-radius: 8px;
+    transition: all 0.3s ease-in-out;
+    flex-wrap: wrap;
+  }
+  li.completed {
+    background: #d4edda;
+    text-decoration: line-through;
+    color: #555;
+  }
+  .actions button {
+    margin-left: 5px;
+    padding: 6px 10px;
+    cursor: pointer;
+    border: none;
+    background: #bdc3c7;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background 0.2s ease;
+  }
+  .actions button:hover { background: #a9b3b9; }
+  .task-info small {
+    display: block;
+    color: #888;
+    margin-top: 3px;
+  }
+  .priority-high { border-left-color: red !important; }
+  .priority-medium { border-left-color: orange !important; }
+  .priority-low { border-left-color: green !important; }
+
+  @media (max-width: 750px) {
+    .container { width: 90%; margin: 20px auto; }
+    body.sidebar-open { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<button id="menuToggleBtn" aria-label="Toggle menu">☰ Menu</button>
+
+<nav class="sidebar" id="sidebarMenu" aria-label="Sidebar menu">
+  <button onclick="showAllTasks()">All Tasks</button>
+  <button onclick="sortByDate()">Sort by Date</button>
+  <button onclick="showCompleted()">Completed</button>
+  <button onclick="showPending()">Pending</button>
+  <button onclick="clearAll()">Clear All</button>
+  <button onclick="filterPriority('high')">High Priority</button>
+  <button onclick="filterPriority('medium')">Medium Priority</button>
+  <button onclick="filterPriority('low')">Low Priority</button>
+  <button onclick="showTodaysTasks()">Today's Tasks</button>
+</nav>
+
+<div class="date-display" id="currentDate"></div>
+
+<div class="container" id="mainContainer">
+  <h1>My To-Do Lists</h1>
+  <div class="new-task">
+    <input type="text" id="taskTitle" placeholder="Task title..." />
+    <textarea id="taskDescription" placeholder="Task description..."></textarea>
+    <input type="datetime-local" id="taskDateTime" />
+    <select id="taskPriority">
+      <option value="high">High Priority</option>
+      <option value="medium" selected>Medium Priority</option>
+      <option value="low">Low Priority</option>
+    </select>
+    <button onclick="addTask()">Add Task</button>
+  </div>
+  <ul id="taskList"></ul>
+</div>
+
+<script>
+  const menuToggleBtn = document.getElementById('menuToggleBtn');
+  const sidebarMenu = document.getElementById('sidebarMenu');
+  const body = document.body;
+
+  menuToggleBtn.addEventListener('click', () => {
+    sidebarMenu.classList.toggle('open');
+    body.classList.toggle('sidebar-open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!sidebarMenu.contains(e.target) && !menuToggleBtn.contains(e.target)) {
+      sidebarMenu.classList.remove('open');
+      body.classList.remove('sidebar-open');
+    }
+  });
+
+  function displayDate() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    document.getElementById('currentDate').textContent = now.toDateString() + ' ' + timeString;
+  }
+
+  setInterval(displayDate, 1000);
+  displayDate();
+
+  // TASK STORAGE: We'll store tasks in an array in localStorage as JSON.
+  let tasks = [];
+
+  function loadTasks() {
+    const saved = localStorage.getItem('tasks');
+    tasks = saved ? JSON.parse(saved) : [];
+    renderTasks(tasks);
+  }
+
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  function renderTasks(taskArray) {
+    const ul = document.getElementById('taskList');
+    ul.innerHTML = '';
+    taskArray.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.className = task.completed ? 'completed' : '';
+      li.classList.add(`priority-${task.priority}`);
+
+      // Task main content container
+      const taskInfo = document.createElement('div');
+      taskInfo.className = 'task-info';
+      taskInfo.style.flex = '1';
+
+      if (task.editing) {
+        // Editable form
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.value = task.title;
+        titleInput.style.width = '100%';
+
+        const descInput = document.createElement('textarea');
+        descInput.value = task.description;
+        descInput.style.width = '100%';
+        descInput.style.marginTop = '5px';
+
+        const dateInput = document.createElement('input');
+        dateInput.type = 'datetime-local';
+        dateInput.value = task.dateTime;
+        dateInput.style.marginTop = '5px';
+
+        const prioritySelect = document.createElement('select');
+        ['high', 'medium', 'low'].forEach(p => {
+          const option = document.createElement('option');
+          option.value = p;
+          option.textContent = p.charAt(0).toUpperCase() + p.slice(1) + ' Priority';
+          if (task.priority === p) option.selected = true;
+          prioritySelect.appendChild(option);
+        });
+        prioritySelect.style.marginTop = '5px';
+
+        taskInfo.appendChild(titleInput);
+        taskInfo.appendChild(descInput);
+        taskInfo.appendChild(dateInput);
+        taskInfo.appendChild(prioritySelect);
+
+        // Save and Cancel buttons
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'actions';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.onclick = () => {
+          task.title = titleInput.value.trim() || 'Untitled Task';
+          task.description = descInput.value.trim();
+          task.dateTime = dateInput.value;
+          task.priority = prioritySelect.value;
+          task.editing = false;
+          saveTasks();
+          renderTasks(tasks);
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.onclick = () => {
+          task.editing = false;
+          renderTasks(tasks);
+        };
+
+        actionsDiv.appendChild(saveBtn);
+        actionsDiv.appendChild(cancelBtn);
+
+        li.appendChild(taskInfo);
+        li.appendChild(actionsDiv);
+
+      } else {
+        // Display mode
+        const titleSpan = document.createElement('strong');
+        titleSpan.textContent = task.title;
+        taskInfo.appendChild(titleSpan);
+
+        if (task.description) {
+          const descSmall = document.createElement('small');
+          descSmall.textContent = task.description;
+          taskInfo.appendChild(descSmall);
+        }
+
+        if (task.dateTime) {
+          const dateSmall = document.createElement('small');
+          const dt = new Date(task.dateTime);
+          dateSmall.textContent = 'Due: ' + dt.toLocaleString();
+          taskInfo.appendChild(dateSmall);
+        }
+
+        li.appendChild(taskInfo);
+
+        // Actions buttons: Complete, Edit, Delete
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'actions';
+
+        const completeBtn = document.createElement('button');
+        completeBtn.textContent = task.completed ? 'Undo' : 'Complete';
+        completeBtn.onclick = () => {
+          task.completed = !task.completed;
+          saveTasks();
+          renderTasks(tasks);
+        };
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => {
+          task.editing = true;
+          renderTasks(tasks);
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => {
+          tasks.splice(index, 1);
+          saveTasks();
+          renderTasks(tasks);
+        };
+
+        actionsDiv.appendChild(completeBtn);
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        li.appendChild(actionsDiv);
+      }
+
+      ul.appendChild(li);
+    });
+  }
+
+  function addTask() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const dateTime = document.getElementById('taskDateTime').value;
+    const priority = document.getElementById('taskPriority').value;
+
+    if (!title) {
+      alert('Please enter a task title.');
+      return;
+    }
+
+    tasks.push({
+      title,
+      description,
+      dateTime,
+      priority,
+      completed: false,
+      editing: false,
+    });
+
+    saveTasks();
+    renderTasks(tasks);
+
+    // Reset inputs
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDescription').value = '';
+    document.getElementById('taskDateTime').value = '';
+    document.getElementById('taskPriority').value = 'medium';
+  }
+
+  // Sidebar filters and functions:
+
+  function showAllTasks() {
+    renderTasks(tasks);
+  }
+
+  function sortByDate() {
+    const sorted = [...tasks].sort((a, b) => {
+      if (!a.dateTime) return 1;
+      if (!b.dateTime) return -1;
+      return new Date(a.dateTime) - new Date(b.dateTime);
+    });
+    renderTasks(sorted);
+  }
+
+  function showCompleted() {
+    renderTasks(tasks.filter(t => t.completed));
+  }
+
+  function showPending() {
+    renderTasks(tasks.filter(t => !t.completed));
+  }
+
+  function clearAll() {
+    if (confirm('Are you sure you want to clear all tasks?')) {
+      tasks = [];
+      saveTasks();
+      renderTasks(tasks);
+    }
+  }
+
+  function filterPriority(priorityLevel) {
+    renderTasks(tasks.filter(t => t.priority === priorityLevel));
+  }
+
+  function showTodaysTasks() {
+    const today = new Date();
+    const filtered = tasks.filter(t => {
+      if (!t.dateTime) return false;
+      const taskDate = new Date(t.dateTime);
+      return taskDate.toDateString() === today.toDateString();
+    });
+    renderTasks(filtered);
+  }
+
+  loadTasks();
+</script>
+</body>
+</html>
